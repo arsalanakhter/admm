@@ -2,7 +2,7 @@ import numpy as np
 from types import SimpleNamespace
 
 QUIET = 0
-MAX_ITER = 10
+MAX_ITER = 70
 ABSTOL = 1e-4
 RELTOL = 1e-2
 
@@ -31,7 +31,7 @@ def linprog(c, A, b, rho, alpha):
     history.eps_dual = [0 for _ in range(MAX_ITER)]
 
     if not QUIET:
-        print(f'iter\tnorm\teps pri\ts norm\teps dual\tobjective')
+        print(f'iter\tr_norm\teps_pri\ts_norm\teps_dual\tobjective')
 
     for k in range(MAX_ITER):
         # x-update
@@ -45,7 +45,7 @@ def linprog(c, A, b, rho, alpha):
         # z-update with relaxation
         z_old = z
         x_hat = alpha * x + (1 - alpha)*z_old
-        z = x_hat + u
+        z = np.maximum(x_hat + u, 0)
         u = u + (x_hat - z)
 
         # Diagnostics, reporting, termination
@@ -68,17 +68,17 @@ def linprog(c, A, b, rho, alpha):
 
 
 if __name__ == '__main__':
-    seed = 12345
+    seed = 0
     rng = np.random.default_rng(seed)
 
     n = 500  # dimension of x
     m = 400  # number of equality constraints
 
     # create non-negative price vector with mean 1
-    c = rng.normal(loc=1, size=(n, 1)) + 0.5
-    x0 = abs(rng.random(size=(n, 1)))  # create random solution vector
+    c = rng.uniform(size=(n, 1)) + 0.5
+    x0 = abs(rng.normal(size=(n, 1)))  # create random solution vector
 
-    A = abs(rng.random((m, n)))  # create random, non-negative matrix A
+    A = abs(rng.normal(size=(m, n)))  # create random, non-negative matrix A
     b = np.matmul(A, x0)
 
     x, history = linprog(c, A, b, 1.0, 1.0)
